@@ -1,0 +1,182 @@
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" /> <!-- 设置页面编码为utf-8 -->
+    <title>Gamedev Canvas Workshop - lesson 10: finishing up</title> <!-- 页面标题 -->
+    <style>* { padding: 0; margin: 0; } canvas { background: #eee; display: block; margin: 0 auto; }</style> <!-- 重置样式和设置canvas样式 -->
+</head>
+<body>
+
+<canvas id="myCanvas" width="480" height="320"></canvas> <!-- 创建一个canvas元素，设置宽高 -->
+
+<script>
+    var canvas = document.getElementById("myCanvas"); // 获取canvas元素
+    var ctx = canvas.getContext("2d"); // 获取canvas的2D渲染上下文
+    var ballRadius = 10; // 球的半径
+    var x = canvas.width/2; // 球的初始x坐标
+    var y = canvas.height-30; // 球的初始y坐标
+    var dx = 2; // 球的初始x方向速度
+    var dy = -2; // 球的初始y方向速度
+    var paddleHeight = 10; // 挡板的高度
+    var paddleWidth = 75; // 挡板的宽度
+    var paddleX = (canvas.width-paddleWidth)/2; // 挡板的初始x坐标
+    var rightPressed = false; // 是否按下向右的键
+    var leftPressed = false; // 是否按下向左的键
+    var brickRowCount = 5; // 砖块的行数
+    var brickColumnCount = 3; // 砖块的列数
+    var brickWidth = 75; // 砖块的宽度
+    var brickHeight = 20; // 砖块的高度
+    var brickPadding = 10; // 砖块之间的间距
+    var brickOffsetTop = 30; // 砖块顶部的偏移量
+    var brickOffsetLeft = 30; // 砖块左侧的偏移量
+    var score = 0; // 分数
+    var lives = 3; // 生命数
+
+    var bricks = []; // 砖块数组
+    for(var c=0; c<brickColumnCount; c++) {
+        bricks[c] = [];
+        for(var r=0; r<brickRowCount; r++) {
+            bricks[c][r] = { x: 0, y: 0, status: 1 }; // 初始化砖块状态
+        }
+    }
+
+    document.addEventListener("keydown", keyDownHandler, false); // 监听键盘按下事件
+    document.addEventListener("keyup", keyUpHandler, false); // 监听键盘释放事件
+    document.addEventListener("mousemove", mouseMoveHandler, false); // 监听鼠标移动事件
+
+    function keyDownHandler(e) { // 键盘按下事件处理函数
+        if(e.code  == "ArrowRight") {
+            rightPressed = true;
+        }
+        else if(e.code == 'ArrowLeft') {
+            leftPressed = true;
+        }
+    }
+    function keyUpHandler(e) { // 键盘释放事件处理函数
+        if(e.code == 'ArrowRight') {
+            rightPressed = false;
+        }
+        else if(e.code == 'ArrowLeft') {
+            leftPressed = false;
+        }
+    }
+    function mouseMoveHandler(e) { // 鼠标移动事件处理函数
+        var relativeX = e.clientX - canvas.offsetLeft;
+        if(relativeX > 0 && relativeX < canvas.width) {
+            paddleX = relativeX - paddleWidth/2;
+        }
+    }
+    function collisionDetection() { // 碰撞检测函数
+        for(var c=0; c<brickColumnCount; c++) {
+            for(var r=0; r<brickRowCount; r++) {
+                var b = bricks[c][r];
+                if(b.status == 1) {
+                    if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+                        dy = -dy;
+                        b.status = 0;
+                        score++;
+                        if(score == brickRowCount*brickColumnCount) {
+                            alert("YOU WIN, CONGRATS!");
+                            document.location.reload();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function drawBall() { // 绘制球的函数
+        ctx.beginPath();
+        ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+    }
+    function drawPaddle() { // 绘制挡板的函数
+        ctx.beginPath();
+        ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+    }
+    function drawBricks() { // 绘制砖块的函数
+        for(var c=0; c<brickColumnCount; c++) {
+            for(var r=0; r<brickRowCount; r++) {
+                if(bricks[c][r].status == 1) {
+                    var brickX = (r*(brickWidth+brickPadding))+brickOffsetLeft;
+                    var brickY = (c*(brickHeight+brickPadding))+brickOffsetTop;
+                    bricks[c][r].x = brickX;
+                    bricks[c][r].y = brickY;
+                    ctx.beginPath();
+                    ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                    ctx.fillStyle = "#0095DD";
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            }
+        }
+    }
+    function drawScore() { // 绘制分数的函数
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#0095DD";
+        ctx.fillText("Score: "+score, 8, 20);
+    }
+    function drawLives() { // 绘制生命数的函数
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#0095DD";
+        ctx.fillText("Lives: "+lives, canvas.width-65, 20);
+    }
+
+    function draw() { // 主绘制函数
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布
+        drawBricks();
+        drawBall();
+        drawPaddle();
+        drawScore();
+        drawLives();
+        collisionDetection();
+
+        if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+            dx = -dx; // 球碰到左右边界反弹
+        }
+        if(y + dy < ballRadius) {
+            dy = -dy; // 球碰到顶部反弹
+        }
+        else if(y + dy > canvas.height-ballRadius) {
+            if(x > paddleX && x < paddleX + paddleWidth) {
+                dy = -dy; // 球碰到挡板反弹
+            }
+            else {
+                lives--; // 球落到底部，生命数减一
+                if(!lives) {
+                    alert("GAME OVER");
+                    document.location.reload(); // 游戏结束，刷新页面
+                }
+                else {
+                    x = canvas.width/2; // 重置球的位置
+                    y = canvas.height-30;
+                    dx = 2;
+                    dy = -2;
+                    paddleX = (canvas.width-paddleWidth)/2; // 重置挡板的位置
+                }
+            }
+        }
+
+        if(rightPressed && paddleX < canvas.width-paddleWidth) {
+            paddleX += 7; // 挡板向右移动
+        }
+        else if(leftPressed && paddleX > 0) {
+            paddleX -= 7; // 挡板向左移动
+        }
+
+        x += dx; // 球移动
+        y += dy;
+        requestAnimationFrame(draw); // 递归调用draw函数，形成动画
+    }
+
+    draw(); // 调用主绘制函数
+</script>
+
+</body>
+</html>
